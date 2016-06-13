@@ -19,10 +19,18 @@
 import sys
 import os
 import logging
-import thread
-import config
 import time
-import subprocess
+# Check whether the config is correctly renamed
+try:
+    import config
+except ImportError:
+    print('[ERROR] Please rename `config.example.py` to `config.py` first!')
+    sys.exit('config not found')
+# For those system do not have thread (or _thread in Python 3)
+try:
+    import thread
+except ImportError:
+    import _dummy_thread as thread
 
 if config.LOG_ENABLE:
     logging.basicConfig(format=config.LOG_FORMAT,
@@ -32,9 +40,11 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 import manager
 from dbtransfer import DbTransfer
 
-
-def handler_SIGQUIT():
-    return
+if os.path.isdir('.git'):
+    import subprocess
+    VERSION = subprocess.check_output(["git", "describe"])
+else:
+    VERSION = '3.0.0'
 
 
 def main():
@@ -53,7 +63,7 @@ def main():
     }
     logging.info('-----------------------------------------')
     logging.info('Multi-User Shadowsocks Server Starting...')
-    logging.info('Current Server Version: %s' % subprocess.check_output(["git", "describe"]))
+    logging.info('Current Server Version: %s' % VERSION)
     thread.start_new_thread(manager.run, (configer,))
     time.sleep(1)
     thread.start_new_thread(DbTransfer.thread_db, ())

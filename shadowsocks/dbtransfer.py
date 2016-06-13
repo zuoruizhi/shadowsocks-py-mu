@@ -239,7 +239,8 @@ class DbTransfer(object):
         string = ''
         for index in range(len(config.SS_SKIP_PORTS)):
             port = config.SS_SKIP_PORTS[index]
-            logging.info('db skipped port %s' % port)
+            if config.SS_VERBOSE:
+                logging.info('db skipped port %s' % port)
             if index == 0:
                 string = ' WHERE `port`<>%s' % port
             else:
