@@ -32,19 +32,25 @@ try:
 except ImportError:
     import _dummy_thread as thread
 
+# Output log at stdout as well as the log file
+logging.basicConfig(format=config.LOG_FORMAT,
+                    datefmt=config.LOG_DATE_FORMAT, stream=sys.stdout, level=config.LOG_LEVEL)
 if config.LOG_ENABLE:
-    logging.basicConfig(format=config.LOG_FORMAT,
-                        datefmt=config.LOG_DATE_FORMAT, filename=config.LOG_FILE, level=config.LOG_LEVEL)
+    logger = logging.getLogger()
+    fileLogger = logging.FileHandler(config.LOG_FILE)
+    fileLogger.setFormatter(logging.Formatter(config.LOG_FORMAT, datefmt=config.LOG_DATE_FORMAT))
+    fileLogger.setLevel(config.LOG_LEVEL)
+    logger.addHandler(fileLogger)
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 import manager
 from dbtransfer import DbTransfer
 
-if os.path.isdir('.git'):
+if os.path.isdir('../.git'):
     import subprocess
     VERSION = subprocess.check_output(["git", "describe"])
 else:
-    VERSION = '3.0.0'
+    VERSION = '3.0.1'
 
 
 def main():
@@ -64,6 +70,9 @@ def main():
     logging.info('-----------------------------------------')
     logging.info('Multi-User Shadowsocks Server Starting...')
     logging.info('Current Server Version: %s' % VERSION)
+    if config.PANEL_VERSION != 'V3':
+        logging.warn('Not support ss-panel version: %s' % config.PANEL_VERSION)
+        logging.warn('Please upgrade your ss-panel to V3 to enable all features.')
     thread.start_new_thread(manager.run, (configer,))
     time.sleep(1)
     thread.start_new_thread(DbTransfer.thread_db, ())

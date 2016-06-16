@@ -1,8 +1,8 @@
-# Please rename this file as config.py before editing it
+# !!! Please rename this file as config.py before editing it !!!
 
 import logging
 
-# Config
+# Database Config
 MYSQL_HOST = 'mengsky.net'
 MYSQL_PORT = 3306
 MYSQL_USER = 'root'
@@ -11,6 +11,7 @@ MYSQL_DB = 'shadowsocks'
 MYSQL_USER_TABLE = 'user'
 MYSQL_TIMEOUT = 30
 
+# It is not necessary to change the password if you only listen on 127.0.0.1
 MANAGE_PASS = 'passwd'
 # if you want manage in other server you should set this value to global ip
 MANAGE_BIND_IP = '127.0.0.1'
@@ -31,13 +32,14 @@ SYNCTIME = 600
 CUSTOM_METHOD = True
 
 # BIND IP
-# if you want bind ipv4 and ipv6 '::'
-# if you want bind all of ipv4 if '0.0.0.0'
-# if you want bind a specific IP you may use something like '4.4.4.4'
+# if you want to bind ipv4 and ipv6 please use '::'
+# if you want to bind only all of ipv4 please use '0.0.0.0'
+# if you want to bind a specific IP you may use something like '4.4.4.4'
 SS_BIND_IP = '::'
 # This default method will be replaced by database record if applicable
 SS_METHOD = 'aes-256-cfb'
-# Shadowsocks One Time Auth (OTA)
+# Choose whether enforce Shadowsocks One Time Auth (OTA)
+# OTA will still be enabled for the client if it sends an AUTH Address type(0x10)
 SS_OTA = False
 # Skip listening these ports
 SS_SKIP_PORTS = ['80']
@@ -48,7 +50,7 @@ SS_BAN_PORTS = [22, 23, 25]
 # Shadowsocks Time Out
 # It should > 180s as some protocol has keep-alive packet of 3 min, Eg.: bt
 SS_TIMEOUT = 185
-# Shadowsocks TCP Fastopen (Some OS may not support this)
+# Shadowsocks TCP Fastopen (Some OS may not support this, Eg.: Windows)
 SS_FASTOPEN = False
 # Shadowsocks verbose
 SS_VERBOSE = False

@@ -1,13 +1,18 @@
+-- -------------------------------------------
+-- !!! WARNING !!!
+-- It is not suggested to use this sql file.
+-- Please import the one provided by SS-Panel.
+-- -------------------------------------------
 SET FOREIGN_KEY_CHECKS=0;
 
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `email` varchar(32) NOT NULL,
   `pass` varchar(32) NOT NULL,
   `passwd` varchar(32) NOT NULL,
   `t` int(11) NOT NULL DEFAULT '0',
-  `u` bigint(20) NOT NULL,
-  `d` bigint(20) NOT NULL,
+  `u` bigint(20) NOT NULL DEFAULT '0',
+  `d` bigint(20) NOT NULL DEFAULT '0',
   `transfer_enable` bigint(20) NOT NULL,
   `port` int(11) NOT NULL,
   `switch` tinyint(4) NOT NULL DEFAULT '1',
@@ -22,4 +27,4 @@ CREATE TABLE `user` (
 -- ----------------------------
 -- Records of user
 -- ----------------------------
-INSERT INTO `user` VALUES ('1', 'test@test.com', '123456', '0000000', '1410609560', '0', '0', '9320666234', '50000', '1', '1', 'aes-256-cfb', '7', '0', '0');
+INSERT INTO `user` (`email`, `pass`, `password`, `transfer_enable`, `port`) VALUES ('test@test.com', '123456', '0000000', '9320666234', '50000');
