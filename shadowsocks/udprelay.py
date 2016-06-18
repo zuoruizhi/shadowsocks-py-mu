@@ -100,8 +100,8 @@ class UDPRelay(object):
         self._password = common.to_bytes(config['password'])
         self._method = config['method']
         self._timeout = config['timeout']
-        if 'one_time_auth' in config:
-            self._one_time_auth_enable = config['one_time_auth']
+        if 'one_time_auth' in config and config['one_time_auth']:
+            self._one_time_auth_enable = True
         else:
             self._one_time_auth_enable = False
         self._is_local = is_local
@@ -196,7 +196,7 @@ class UDPRelay(object):
         else:
             server_addr, server_port = dest_addr, dest_port
             # spec https://shadowsocks.org/en/spec/one-time-auth.html
-            if self._one_time_auth_enable or (addrtype & ADDRTYPE_AUTH == ADDRTYPE_AUTH):
+            if self._one_time_auth_enable or addrtype & ADDRTYPE_AUTH:
                 self._one_time_auth_enable = True
                 if len(data) < header_length + ONETIMEAUTH_BYTES:
                     logging.warn('UDP one time auth header is too short')
