@@ -292,14 +292,12 @@ class TCPRelayHandler(object):
             if self._is_local:
                 cmd = common.ord(data[1])
                 if cmd == CMD_UDP_ASSOCIATE:
-                    logging.debug('U[%d] UDP associate' %
-                                  self._config['server_port'])
+                    logging.debug('UDP associate')
                     if self._local_sock.family == socket.AF_INET6:
                         header = b'\x05\x00\x00\x04'
                     else:
                         header = b'\x05\x00\x00\x01'
                     addr, port = self._local_sock.getsockname()[:2]
-                    # TODO: inet_pton is added for windows in Py 3.4
                     addr_to_send = socket.inet_pton(self._local_sock.family,
                                                     addr)
                     port_to_send = struct.pack('>H', port)
@@ -312,29 +310,28 @@ class TCPRelayHandler(object):
                     # just trim VER CMD RSV
                     data = data[3:]
                 else:
-                    logging.error('U[%d] Unknown command %d',
-                                  self._config['server_port'], cmd)
+                    logging.error('unknown command %d', cmd)
                     self.destroy()
                     return
             header_result = parse_header(data)
             if header_result is None:
-                raise Exception('U[%d] Can not parse header' %
-                                self._config['server_port'])
+                raise Exception('can not parse header')
             addrtype, remote_addr, remote_port, header_length = header_result
             if remote_port in self._config['banned_ports']:
-                logging.warning('U[%d] TCP PORT BANNED: RP[%d] A[%s-->%s]' % (
+                logging.warning('TCP PORT BANNED: U[%d] RP[%d] A[%s-->%s]' % (
                     self._config['server_port'], remote_port,
                     self._client_address[0], common.to_str(remote_addr)
                 ))
                 return
             else:
-                logging.info('U[%d] TCP CONN: RP[%d] A[%s-->%s]' % (
+                logging.info('TCP CONN: U[%d] RP[%d] A[%s-->%s]' % (
                     self._config['server_port'], remote_port,
                     self._client_address[0], common.to_str(remote_addr)
                 ))
             if self._is_local is False:
                 # spec https://shadowsocks.org/en/spec/one-time-auth.html
                 if self._ota_enable or (addrtype & ADDRTYPE_AUTH == ADDRTYPE_AUTH):
+                    self._ota_enable = True
                     if len(data) < header_length + ONETIMEAUTH_BYTES:
                         logging.warn('one time auth header is too short')
                         return None
@@ -386,12 +383,12 @@ class TCPRelayHandler(object):
         addrs = socket.getaddrinfo(ip, port, 0, socket.SOCK_STREAM,
                                    socket.SOL_TCP)
         if len(addrs) == 0:
-            raise Exception("TCP getaddrinfo failed for %s:%d" % (ip, port))
+            raise Exception("getaddrinfo failed for %s:%d" % (ip, port))
         af, socktype, proto, canonname, sa = addrs[0]
         if self._forbidden_iplist:
             if common.to_str(sa[0]) in self._forbidden_iplist:
-                raise Exception('U[%d] IP %s is in forbidden list, rejected' %
-                                (self._config['server_port'], common.to_str(sa[0])))
+                raise Exception('IP %s is in forbidden list, reject' %
+                                common.to_str(sa[0]))
         remote_sock = socket.socket(af, socktype, proto)
         self._remote_sock = remote_sock
         self._fd_to_handlers[remote_sock.fileno()] = self
@@ -471,8 +468,7 @@ class TCPRelayHandler(object):
                 index = struct.pack('>I', self._ota_chunk_idx)
                 key = self._encryptor.decipher_iv + index
                 if onetimeauth_verify(_hash, _data, key) is False:
-                    logging.warn('U[%d] TCP One time auth fail, chunk is dropped!' % self._config[
-                                 'server_port'])
+                    logging.warn('one time auth fail, drop chunk !')
                 else:
                     data_cb(self._ota_buff_data)
                     self._ota_chunk_idx += 1
@@ -637,8 +633,8 @@ class TCPRelayHandler(object):
             logging.warn('unknown socket')
 
     def _log_error(self, e):
-        logging.error('U[%d] UDP %s when handling connection from %s:%d' %
-                      (self._config['server_port'], e, self._client_address[0], self._client_address[1]))
+        logging.error('%s when handling connection from %s:%d' %
+                      (e, self._client_address[0], self._client_address[1]))
 
     def destroy(self):
         # destroy the handler and release any resources
@@ -701,7 +697,7 @@ class TCPRelay(object):
         addrs = socket.getaddrinfo(listen_addr, listen_port, 0,
                                    socket.SOCK_STREAM, socket.SOL_TCP)
         if len(addrs) == 0:
-            raise Exception("TCP getaddrinfo failed for %s:%d" %
+            raise Exception("can't get addrinfo for %s:%d" %
                             (listen_addr, listen_port))
         af, socktype, proto, canonname, sa = addrs[0]
         server_socket = socket.socket(af, socktype, proto)
@@ -712,8 +708,7 @@ class TCPRelay(object):
             try:
                 server_socket.setsockopt(socket.SOL_TCP, 23, 5)
             except socket.error:
-                logging.warning(
-                    'fast open is not available, automatically turned off')
+                logging.warning('fast open is not available, automatically turned off')
                 self._config['fast_open'] = False
         server_socket.listen(1024)
         self._server_socket = server_socket
