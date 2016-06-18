@@ -8,7 +8,7 @@ Install
 2. install cymysql library by `pip install cymysql`
 3. create a database named `shadowsocks`
 4. import `shadowsocks.sql` into `shadowsocks`
-5. copy `config.example.py` to `config.py` and edit it following the notes inside
+5. copy `config_example.py` to `config.py` and edit it following the notes inside (but DO NOT delete the example file)
 6. TestRun `cd shadowsocks && python servers.py` (not server.py)
 
 if no exception the server will startup. By default logging is enabled.

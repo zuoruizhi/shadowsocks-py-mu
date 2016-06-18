@@ -42,6 +42,15 @@ if config.LOG_ENABLE:
     fileLogger.setLevel(config.LOG_LEVEL)
     logger.addHandler(fileLogger)
 
+# Check whether the versions of config files match
+try:
+    import config_example
+    if not hasattr(config, 'CONFIG_VERSION') or config.CONFIG_VERSION != config_example.CONFIG_VERSION:
+        logging.error('Your configuration file is out-dated. Please update `config.py` according to `config.example.py`.')
+        sys.exit('config out-dated')
+except ImportError:
+    logging.error('DO NOT delete the example configuration! Please re-upload it or use `git reset` to recover the file!')
+    sys.exit('example config file missing')
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../'))
 import manager
 from dbtransfer import DbTransfer

@@ -1,6 +1,8 @@
-# !!! Please rename this file as config.py before editing it !!!
+# !!! Please rename this file as config.py BEFORE editing it !!!
 
 import logging
+# !!! Do NOT touch this line !!!
+CONFIG_VERSION = '20160618-1'
 
 # Database Config
 MYSQL_HOST = 'mengsky.net'
@@ -23,6 +25,7 @@ MANAGE_PORT = 23333
 # anything in the following settings
 PANEL_VERSION = 'V2'
 API_URL = 'http://domain/mu'
+# API Key of SS-Panel V3 (you can find this in the .env file)
 API_PASS = 'mupass'
 NODE_ID = '1'
 CHECKTIME = 15
@@ -54,7 +57,7 @@ SS_TIMEOUT = 185
 SS_FASTOPEN = False
 # Shadowsocks verbose
 SS_VERBOSE = False
-# Banned IP List
+# Banned Target IP List
 SS_FORBIDDEN_IP = []
 
 # LOG CONFIG

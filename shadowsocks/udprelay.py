@@ -121,12 +121,13 @@ class UDPRelay(object):
         addrs = socket.getaddrinfo(self._listen_addr, self._listen_port, 0,
                                    socket.SOCK_DGRAM, socket.SOL_UDP)
         if len(addrs) == 0:
-            raise Exception("UDP can't get addrinfo for %s:%d" %
+            raise Exception("UDP getaddrinfo failed for %s:%d" %
                             (self._listen_addr, self._listen_port))
         af, socktype, proto, canonname, sa = addrs[0]
         server_socket = socket.socket(af, socktype, proto)
         server_socket.bind((self._listen_addr, self._listen_port))
         server_socket.setblocking(False)
+        self._client_address = server_socket.getpeername()[1]
         self._server_socket = server_socket
         self._stat_callback = stat_callback
 
@@ -137,7 +138,8 @@ class UDPRelay(object):
             server_port = random.choice(server_port)
         if type(server) == list:
             server = random.choice(server)
-        logging.debug('chosen server: %s:%d', server, server_port)
+        logging.debug('U[%d] UDP Chosen server: %s:%d' %
+                      (self._config['server_port'], server, server_port))
         return server, server_port
 
     def _close_client(self, client):
@@ -155,13 +157,15 @@ class UDPRelay(object):
         key = None
         iv = None
         if not data:
-            logging.debug('UDP handle_server: data is empty')
+            logging.debug('U[%d] UDP handle_server: data is empty' %
+                          self._config['server_port'])
         if self._stat_callback:
             self._stat_callback(self._listen_port, len(data))
         if self._is_local:
             frag = common.ord(data[2])
             if frag != 0:
-                logging.warn('UDP drop a message since frag is not 0')
+                logging.warn('U[%d] UDP drop a message since frag is not 0' % self._config[
+                             'server_port'])
                 return
             else:
                 data = data[3:]
@@ -172,7 +176,8 @@ class UDPRelay(object):
             # decrypt data
             if not data:
                 logging.debug(
-                    'UDP handle_server: data is empty after decrypt'
+                    'U[%d] UDP handle_server: data is empty after decrypt' % self._config[
+                        'server_port']
                 )
                 return
         header_result = parse_header(data)
@@ -181,15 +186,15 @@ class UDPRelay(object):
         addrtype, dest_addr, dest_port, header_length = header_result
 
         if dest_port in self._config['banned_ports']:
-            logging.warning('UDP PORT BANNED: U[%d] RP[%d] A[%s-->%s]' % (
+            logging.warning('U[%d] UDP PORT BANNED: RP[%d] A[%s-->%s]' % (
                 self._config['server_port'], dest_port,
-                self._listen_port, common.to_str(dest_addr)
+                self._client_address, common.to_str(dest_addr)
             ))
             return
         else:
-            logging.info('UDP CONN: U[%d] RP[%d] A[%s-->%s]' % (
+            logging.info('U[%d] UDP CONN: RP[%d] A[%s-->%s]' % (
                 self._config['server_port'], dest_port,
-                self._listen_port, common.to_str(dest_addr)
+                self._client_address, common.to_str(dest_addr)
             ))
         if self._is_local:
             server_addr, server_port = self._get_a_server()
@@ -197,15 +202,16 @@ class UDPRelay(object):
             server_addr, server_port = dest_addr, dest_port
             # spec https://shadowsocks.org/en/spec/one-time-auth.html
             if self._one_time_auth_enable or (addrtype & ADDRTYPE_AUTH == ADDRTYPE_AUTH):
-                self._one_time_auth_enable = True
                 if len(data) < header_length + ONETIMEAUTH_BYTES:
-                    logging.warn('UDP one time auth header is too short')
+                    logging.warn('U[%d] UDP one time auth header is too short' % self._config[
+                                 'server_port'])
                     return
                 _hash = data[-ONETIMEAUTH_BYTES:]
                 data = data[: -ONETIMEAUTH_BYTES]
                 _key = iv + key
                 if onetimeauth_verify(_hash, data, _key) is False:
-                    logging.warn('UDP one time auth fail')
+                    logging.warn('U[%d] UDP one time auth fail' %
+                                 self._config['server_port'])
                     return
         addrs = self._dns_cache.get(server_addr, None)
         if addrs is None:
@@ -224,8 +230,8 @@ class UDPRelay(object):
             # TODO async getaddrinfo
             if self._forbidden_iplist:
                 if common.to_str(sa[0]) in self._forbidden_iplist:
-                    logging.debug('IP %s is in forbidden list, drop' %
-                                  common.to_str(sa[0]))
+                    logging.debug('U[%d] IP %s is in forbidden list, drop' %
+                                  (self._config['server_port'], common.to_str(sa[0])))
                     # drop
                     return
             client = socket.socket(af, socktype, proto)
@@ -267,7 +273,8 @@ class UDPRelay(object):
     def _handle_client(self, sock):
         data, r_addr = sock.recvfrom(BUF_SIZE)
         if not data:
-            logging.debug('UDP handle_client: data is empty')
+            logging.debug('U[%d] UDP handle_client: data is empty' %
+                          self._config['server_port'])
             return
         if self._stat_callback:
             self._stat_callback(self._listen_port, len(data))
@@ -297,9 +304,10 @@ class UDPRelay(object):
             # simply drop that packet
             pass
 
-    def _ota_chunk_data_gen(self, key, iv, data):
+    @staticmethod
+    def _ota_chunk_data_gen(key, iv, data):
         data = common.chr(common.ord(data[0]) | ADDRTYPE_AUTH) + data[1:]
-        key = iv + key
+        key += iv
         return data + onetimeauth_gen(data, key)
 
     def add_to_loop(self, loop):
@@ -317,11 +325,13 @@ class UDPRelay(object):
     def handle_event(self, sock, fd, event):
         if sock == self._server_socket:
             if event & eventloop.POLL_ERR:
-                logging.error('UDP server_socket err')
+                logging.error('U[%d] UDP server_socket err' %
+                              self._config['server_port'])
             self._handle_server()
         elif sock and (fd in self._sockets):
             if event & eventloop.POLL_ERR:
-                logging.error('UDP client_socket err')
+                logging.error('U[%d] UDP client_socket err' %
+                              self._config['server_port'])
             self._handle_client(sock)
 
     def handle_periodic(self):
@@ -331,13 +341,14 @@ class UDPRelay(object):
                 self._server_socket = None
                 for sock in self._sockets:
                     sock.close()
-                logging.info('closed UDP port %d', self._listen_port)
+                logging.info('U[%d] UDP port %d closed' %
+                             (self._config['server_port'], self._listen_port))
         self._cache.sweep()
         self._client_fd_to_server_addr.sweep()
         self._dns_cache.sweep()
 
     def close(self, next_tick=False):
-        logging.debug('UDP close')
+        logging.debug('U[%d] UDP closed' % self._config['server_port'])
         self._closed = True
         if not next_tick:
             if self._eventloop:
