@@ -112,8 +112,8 @@ class TCPRelayHandler(object):
         self._stage = STAGE_INIT
         self._encryptor = encrypt.Encryptor(
             config['password'], config['method'])
-        if 'one_time_auth' in config:
-            self._ota_enable = config['one_time_auth']
+        if 'one_time_auth' in config and config['one_time_auth']:
+            self._ota_enable = True
         else:
             self._ota_enable = False
         self._ota_buff_head = b''
@@ -277,7 +277,6 @@ class TCPRelayHandler(object):
                     # in this case data is not sent at all
                     self._update_stream(STREAM_UP, WAIT_STATUS_READWRITING)
                 elif eventloop.errno_from_exception(e) == errno.ENOTCONN:
-                    self._fastopen_connected = False
                     logging.error('fast open not supported on this OS')
                     self._config['fast_open'] = False
                     self.destroy()
@@ -330,7 +329,7 @@ class TCPRelayHandler(object):
                 ))
             if self._is_local is False:
                 # spec https://shadowsocks.org/en/spec/one-time-auth.html
-                if self._ota_enable or (addrtype & ADDRTYPE_AUTH == ADDRTYPE_AUTH):
+                if self._ota_enable or addrtype & ADDRTYPE_AUTH:
                     self._ota_enable = True
                     if len(data) < header_length + ONETIMEAUTH_BYTES:
                         logging.warn('one time auth header is too short')
@@ -704,11 +703,11 @@ class TCPRelay(object):
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_socket.bind(sa)
         server_socket.setblocking(False)
-        if self._config['fast_open']:
+        if config['fast_open']:
             try:
                 server_socket.setsockopt(socket.SOL_TCP, 23, 5)
             except socket.error:
-                logging.warning('fast open is not available, automatically turned off')
+                logging.error('warning: fast open is not available')
                 self._config['fast_open'] = False
         server_socket.listen(1024)
         self._server_socket = server_socket

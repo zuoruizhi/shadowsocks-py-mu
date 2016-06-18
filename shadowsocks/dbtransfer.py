@@ -156,6 +156,10 @@ class DbTransfer(object):
                 the_page = response.read()
                 if config.SS_VERBOSE:
                     logging.info('%s - %s - %s' % (url, data, the_page))
+            else:
+                if config.SS_VERBOSE:
+                    logging.warn('Not support panel version: %s' % config.PANEL_VERSION)
+                return
 
 
     @staticmethod
